@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { getAirport, searchAirports } from "./airports.js";
+import { getMetar } from "./metar.js";
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -23,6 +24,27 @@ app.get("/api/airports/:ident", (req, res) => {
     return;
   }
   res.json(airport);
+});
+
+app.get("/api/metar/:ident", async (req, res) => {
+  const ident = req.params.ident;
+
+  if (!/^[A-Za-z0-9]{3,4}$/.test(ident)) {
+    res.status(400).json({ error: "Invalid airport identifier" });
+    return;
+  }
+
+  try {
+    const metar = await getMetar(ident);
+    if (!metar) {
+      res.status(404).json({ error: "No METAR available for this airport" });
+      return;
+    }
+    res.json(metar);
+  } catch (err) {
+    console.error(err);
+    res.status(502).json({ error: "Could not reach weather service" });
+  }
 });
 
 app.listen(PORT, () => {
